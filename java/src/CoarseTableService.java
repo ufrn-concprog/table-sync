@@ -1,8 +1,8 @@
 /**
- * ARQUIVO DOS ALUNOS — versão Coarse da tabela concorrente.
- *
- * <p>Leia 'Descrição do problema' e 'Implementação' no README antes de começar e
- * justifique no relatório cada escolha de sincronização.</p>
+ * Implementação de referência da tabela concorrente.
+ * 
+ * <p>Esta versão deve usar uma estratégia simples e correta para proteger o
+ * estado compartilhado.</p>
  */
 public class CoarseTableService implements Harness.TableService {
     /** Parâmetros da carga */
@@ -17,15 +17,34 @@ public class CoarseTableService implements Harness.TableService {
         // TODO: estado compartilhado e mecanismos de sincronização
     }
 
-    /** {@inheritDoc} */
-    @Override public int get(int key) { throw new UnsupportedOperationException("TODO"); }
+    /** 
+     * {@inheritDoc} 
+     * @throws UnsupportedOperationException o método ainda não foi implementado
+     */
+    @Override public int get(int key) { 
+        throw new UnsupportedOperationException("TODO"); 
+    }
 
-    /** {@inheritDoc} */
-    @Override public void put(int key, int value) { throw new UnsupportedOperationException("TODO"); }
+    /** 
+     * {@inheritDoc} 
+     * @throws UnsupportedOperationException o método ainda não foi implementado
+     */
+    @Override public void put(int key, int value) { 
+        throw new UnsupportedOperationException("TODO"); 
+    }
+    /** 
+     * {@inheritDoc} 
+     * @throws UnsupportedOperationException o método ainda não foi implementado
+     */
+    @Override public int scan(int lo, int hi) { 
+        throw new UnsupportedOperationException("TODO"); 
+    }
 
-    /** {@inheritDoc} */
-    @Override public int scan(int lo, int hi) { throw new UnsupportedOperationException("TODO"); }
-
-    /** {@inheritDoc} */
-    @Override public Harness.Stats stats() { throw new UnsupportedOperationException("TODO"); }
+    /** 
+     * {@inheritDoc} 
+     * @throws UnsupportedOperationException o método ainda não foi implementado
+     */
+    @Override public Harness.Stats stats() { 
+        throw new UnsupportedOperationException("TODO"); 
+    }
 }

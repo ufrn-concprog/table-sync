@@ -10,7 +10,7 @@ import java.util.List;
  * Infraestrutura de execução da tabela concorrente.
  *
  * <p>Fornece leitura da carga, relógio, executor de sessões e gravação do log
- * consumido pelo validador. <strong>Este arquivo não deve ser modificado.</strong></p>
+ * consumido pelo validador.</p>
  */
 public final class Harness {
     /** Impede a instanciação desta classe utilitária */
@@ -21,7 +21,7 @@ public final class Harness {
 
     /**
      * Retorna o tempo monotônico decorrido desde o início do processo
-     * @return tempo decorrido em nanossegundos
+     * @return Tempo decorrido em nanossegundos
      */
     public static long nowNs() {
         return System.nanoTime() - ORIGIN;
@@ -35,46 +35,47 @@ public final class Harness {
 
     /**
      * Operação individual de uma sessão
-     * @param kind {@code 'G'} (get), {@code 'P'} (put) ou {@code 'S'} (scan)
-     * @param a chave (G e P) ou limite inferior lo (S)
-     * @param b valor (P) ou limite superior hi, exclusivo (S); 0 em G
+     * @param kind  {@code 'G'} (get), {@code 'P'} (put) ou {@code 'S'} (scan)
+     * @param a     Chave ({@code G} e {@code P}) ou limite inferior, inclusivo ({@code 'S'})
+     * @param b     Valor ({@code P}) ou limite superior, exclusivo ({@code 'S'}); 0 em ({@code G})
      */
     public record Op(char kind, int a, int b) {}
 
     /**
-     * Sessão de operações de um cliente
-     * @param id identificador da sessão
-     * @param ops operações, na ordem de execução
+     * Sessão de operações
+     * @param id    Identificador da sessão
+     * @param ops   Operações, na ordem de execução
      */
     public record Session(int id, List<Op> ops) {}
 
     /**
      * Carga completa
-     * @param params parâmetros da carga
-     * @param sessions sessões, na ordem do arquivo
+     * @param params    Parâmetros da carga
+     * @param sessions  Sessões, na ordem do arquivo
      */
     public record Workload(Params params, List<Session> sessions) {}
 
     /**
      * Contadores agregados do serviço
-     * @param gets quantidade de chamadas a {@code get}
-     * @param puts quantidade de chamadas a {@code put}
-     * @param scans quantidade de chamadas a {@code scan}
+     * @param gets  Quantidade de chamadas a {@code get}
+     * @param puts  Quantidade de chamadas a {@code put}
+     * @param scans Quantidade de chamadas a {@code scan}
      */
     public record Stats(long gets, long puts, long scans) {}
 
     /**
      * Registro de uma operação executada
-     * @param session identificador da sessão
-     * @param idx posição da operação na sessão
-     * @param kind tipo da operação
-     * @param a primeiro argumento
-     * @param b segundo argumento
-     * @param start instante de início, em nanossegundos
-     * @param end instante de fim, em nanossegundos
-     * @param result valor devolvido (G e S); sem significado em P
+     * @param session   Identificador da sessão
+     * @param idx       Posição da operação na sessão
+     * @param kind      Tipo da operação
+     * @param a         Primeiro argumento
+     * @param b         Segundo argumento
+     * @param start     Instante de início, em nanossegundos
+     * @param end       Instante de fim, em nanossegundos
+     * @param result    Valor devolvido (G e S); sem significado em P
      */
-    public record Rec(int session, int idx, char kind, int a, int b, long start, long end, int result) {}
+    public record SessionRecord(int session, int idx, char kind, int a, int b, 
+        long start, long end, int result) {}
 
     /**
      * Contrato das implementações da tabela concorrente. Todos os métodos podem
@@ -89,40 +90,40 @@ public final class Harness {
 
         /**
          * Devolve o valor da chave
-         * @param key chave, de 0 a keys-1
+         * @param key chave, de 0 a {@code keys}-1
          * @return valor gravado, ou 0 se nenhum valor foi gravado na chave
          */
         int get(int key);
 
         /**
-         * Grava o valor na chave. Depois do retorno, todo {@code get} que comece em seguida
-         * devolve este valor ou um valor gravado depois dele.
-         * @param key chave, de 0 a keys-1
-         * @param value valor positivo, único em toda a carga
+         * Grava o valor na chave. Depois do retorno, todo {@code get} que comece 
+         * em seguida devolve este valor ou um valor gravado depois dele.
+         * @param key Chave, de 0 a {@code keys}-1
+         * @param value Valor positivo, único em toda a carga
          */
         void put(int key, int value);
 
         /**
-         * Conta as chaves de lo até hi-1 com valor diferente de 0. Não precisa ser atômica:
-         * cada chave é contada pelo seu estado em algum instante durante a chamada.
-         * @param lo limite inferior, inclusive
-         * @param hi limite superior, exclusive
-         * @return quantidade de chaves com valor diferente de 0
+         * Conta as chaves de {@code lo} até {@code hi}-1 com valor diferente de 0. 
+         * @param lo Limite inferior, inclusivo
+         * @param hi Limite superior, exclusivo
+         * @return Quantidade de chaves com valor diferente de 0
          */
         int scan(int lo, int hi);
 
         /**
          * Retorna os contadores do serviço
-         * @return quantidade de chamadas de cada operação realizadas até o momento
+         * @return Quantidade de chamadas de cada operação realizadas até o momento
          */
         Stats stats();
     }
 
     /**
      * Lê os parâmetros e as sessões de uma carga
-     * @param path caminho do arquivo de carga
+     * @param path Caminho do arquivo de carga
      * @return parâmetros e sessões
-     * @throws IOException se o arquivo não puder ser lido ou não tiver a linha {@code PARAMS}
+     * @throws IOException se o arquivo não puder ser lido ou não tiver a linha 
+     *         {@code PARAMS}
      */
     public static Workload loadWorkload(Path path) throws IOException {
         Params params = null;
@@ -160,22 +161,25 @@ public final class Harness {
     /** Executa em ordem as operações de uma sessão e registra seus resultados. */
     public static final class SessionRunner {
         private final TableService svc;
-        private final List<Rec> out;
+        private final List<SessionRecord> out;
 
         /**
-         * Cria um executor associado a um serviço e a uma lista de saída; cada thread
-         * deve ter o seu próprio
-         * @param svc serviço utilizado para executar as operações
-         * @param out lista que receberá os registros das operações
+         * Cria um executor associado a um serviço e a uma lista de saída; 
+         * cada thread deve ter sua instância própria do serviço e sua 
+         * própria lista de saída.
+         * 
+         * @param svc Serviço utilizado para executar as operações
+         * @param out Lista que receberá os registros das operações
          */
-        public SessionRunner(TableService svc, List<Rec> out) {
+        public SessionRunner(TableService svc, List<SessionRecord> out) {
             this.svc = svc;
             this.out = out;
         }
 
         /**
          * Executa as operações de uma sessão sequencialmente
-         * @param session sessão a executar
+         * @param session Sessão a executar
+         * @throws IllegalStateException se a operação for desconhecida
          */
         public void run(Session session) {
             List<Op> ops = session.ops();
@@ -190,36 +194,40 @@ public final class Harness {
                     default -> throw new IllegalStateException("operação desconhecida: " + op.kind());
                 }
                 long e = Harness.nowNs();
-                out.add(new Rec(session.id(), idx, op.kind(), op.a(), op.b(), s, e, res));
+                out.add(new SessionRecord(session.id(), idx, op.kind(), op.a(), op.b(), s, e, res));
             }
         }
     }
 
     /**
-     * Grava no arquivo os registros de operações, as estatísticas e os metadados da execução
-     * @param path caminho do arquivo de destino
-     * @param outs listas de registros das threads trabalhadoras
-     * @param st estatísticas finais do serviço
-     * @param workers quantidade de threads trabalhadoras
-     * @param wallNs duração total da execução em nanossegundos
+     * Grava no arquivo os registros de operações, as estatísticas e os 
+     * metadados da execução
+     * @param path      Caminho do arquivo de destino
+     * @param outs      Listas de registros das threads trabalhadoras
+     * @param st        Estatísticas finais do serviço
+     * @param workers   Quantidade de threads trabalhadoras
+     * @param wallNs    Duração total da execução em nanossegundos
      * @throws IOException se não for possível gravar o arquivo
      */
-    public static void writeLog(Path path, List<List<Rec>> outs, Stats st, int workers, long wallNs)
-            throws IOException {
-        try (PrintWriter w = new PrintWriter(Files.newBufferedWriter(path, StandardCharsets.UTF_8))) {
+    public static void writeLog(Path path, List<List<SessionRecord>> outs, 
+        Stats st, int workers, long wallNs) throws IOException {
+        try (PrintWriter w = new PrintWriter(Files.newBufferedWriter(path, 
+                StandardCharsets.UTF_8))) {
             StringBuilder sb = new StringBuilder();
-            for (List<Rec> out : outs) {
-                for (Rec r : out) {
+            for (List<SessionRecord> out : outs) {
+                for (SessionRecord r : out) {
                     sb.setLength(0);
-                    sb.append("OP\t").append(r.session()).append('\t').append(r.idx()).append('\t')
-                      .append(r.kind()).append('\t').append(r.a()).append('\t')
-                      .append(r.kind() == 'G' ? "-" : String.valueOf(r.b())).append('\t')
-                      .append(r.start()).append('\t').append(r.end()).append('\t')
-                      .append(r.kind() == 'P' ? "-" : String.valueOf(r.result())).append('\n');
+                    sb.append("OP\t").append(r.session())
+                        .append('\t').append(r.idx()).append('\t').append(r.kind())
+                        .append('\t').append(r.a()).append('\t')
+                        .append(r.kind() == 'G' ? "-" : String.valueOf(r.b()))
+                        .append('\t').append(r.start()).append('\t').append(r.end())
+                        .append('\t').append(r.kind() == 'P' ? "-" : String.valueOf(r.result())).append('\n');
                     w.print(sb);
                 }
             }
-            w.print("STATS\tgets=" + st.gets() + "\tputs=" + st.puts() + "\tscans=" + st.scans() + "\n");
+            w.print("STATS\tgets=" + st.gets() + "\tputs=" + st.puts() + 
+                "\tscans=" + st.scans() + "\n");
             w.print("RUN\tworkers=" + workers + "\twall_ns=" + wallNs + "\n");
         }
     }

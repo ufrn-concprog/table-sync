@@ -1,8 +1,8 @@
 /**
- * ARQUIVO DOS ALUNOS — versão Rw da tabela concorrente.
- *
- * <p>Leia 'Descrição do problema' e 'Implementação' no README antes de começar e
- * justifique no relatório cada escolha de sincronização.</p>
+ * Implementação em que um único lock de leitura e escrita protege toda a 
+ * tabela concorrente, de modo que as operações {@code get} e {@code scan} 
+ * possam ocorrer ao mesmo tempo, e somente a operação {@code put} exclua 
+ * as demais operações
  */
 public class RwTableService implements Harness.TableService {
     /** Parâmetros da carga */
@@ -17,15 +17,35 @@ public class RwTableService implements Harness.TableService {
         // TODO: estado compartilhado e mecanismos de sincronização
     }
 
-    /** {@inheritDoc} */
-    @Override public int get(int key) { throw new UnsupportedOperationException("TODO"); }
+    /** 
+     * {@inheritDoc} 
+     * @throws UnsupportedOperationException o método ainda não foi implementado
+     */
+    @Override public int get(int key) { 
+        throw new UnsupportedOperationException("TODO");
+    }
 
-    /** {@inheritDoc} */
-    @Override public void put(int key, int value) { throw new UnsupportedOperationException("TODO"); }
+    /** 
+     * {@inheritDoc} 
+     * @throws UnsupportedOperationException o método ainda não foi implementado
+     */
+    @Override public void put(int key, int value) { 
+        throw new UnsupportedOperationException("TODO"); 
+    }
 
-    /** {@inheritDoc} */
-    @Override public int scan(int lo, int hi) { throw new UnsupportedOperationException("TODO"); }
+    /** 
+     * {@inheritDoc} 
+     * @throws UnsupportedOperationException o método ainda não foi implementado
+     */
+    @Override public int scan(int lo, int hi) { 
+        throw new UnsupportedOperationException("TODO"); 
+    }
 
-    /** {@inheritDoc} */
-    @Override public Harness.Stats stats() { throw new UnsupportedOperationException("TODO"); }
+    /** 
+     * {@inheritDoc} 
+     * @throws UnsupportedOperationException o método ainda não foi implementado
+     */
+    @Override public Harness.Stats stats() { 
+        throw new UnsupportedOperationException("TODO"); 
+    }
 }
