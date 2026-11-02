@@ -1,0 +1,16 @@
+# Gerados pela compilação
+out/
+*.class
+cpp/table_sync
+*.o
+__pycache__/
+*.pyc
+
+# Cargas e logs gerados (podem ser recriados com tools/generate_workload.py)
+workloads/*.txt
+*.log
+
+# IDEs
+.idea/
+.vscode/
+*.iml
