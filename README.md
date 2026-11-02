@@ -122,8 +122,8 @@ Note que as sessões são independentes, mas disputam as mesmas chaves, e a orde
 O arquivo [`generate_workload.py`](tools/generate_workload.py), que **não deve ser modificado**, cria a carga de forma determinística: a mesma semente, *perfil* e número de sessões geram sempre o mesmo arquivo. Uma sessão pode ser um dos seguintes três tipos:
 
 1. *leitor*, que realiza apenas operações `get` com 60% dos acessos recaindo sobre 5% das chaves;
-2. escritor, que realiza de uma a três operações `put`, cada uma seguida de uma operação `get`; e
-3. varredor, que realiza uma operação `scan` sobre uma faixa de 100 chaves.
+2. *escritor*, que realiza de uma a três operações `put`, cada uma seguida de uma operação `get`; e
+3. *varredor*, que realiza uma operação `scan` sobre uma faixa de 100 chaves.
 
 O perfil define a porcentagem de sessões de cada tipo: no leitura, 85% são leitoras, 10% escritoras e 5% varredoras; no escrita, 40%, 45% e 15%, respectivamente. O perfil de leitura imita o uso normal, enquanto o perfil de escrita aumenta as alterações e as varreduras, que disputam a tabela com as leituras.
 
