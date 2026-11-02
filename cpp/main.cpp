@@ -2,9 +2,9 @@
  * @file    main.cpp
  * @brief   Ponto de entrada da aplicação.
  * @details Executa a carga com um pipeline concorrente: um produtor entrega as
- *          sessões, por uma fila limitada, às threads; todas começam juntas
- *          por uma porta de largada e o tempo medido (wall) exclui a criação das
- *          threads.
+ *          sessões, por uma fila limitada, a um determinado número de threads; 
+ *          todas começam juntas por uma porta de largada e o tempo medido (wall) 
+ *          exclui a criação das threads.
  */
 
 #include <barrier>
@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
     int workers = 16;
     for (int i = 2; i < argc; ++i) {
         string a = argv[i];
-        if ((a == "--workers" || a == "-w") && i + 1 < argc) workers = atoi(argv[++i]);
+        if ((a == "--workers") && i + 1 < argc) workers = atoi(argv[++i]);
         else if (a == "--impl" && i + 1 < argc) impl = argv[++i];
         else if (a == "-o" && i + 1 < argc) output = argv[++i];
         else { fprintf(stderr, "argumento desconhecido: %s\n", a.c_str()); return 1; }
