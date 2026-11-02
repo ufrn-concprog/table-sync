@@ -18,7 +18,12 @@ Formato do log (campos separados por tabulação):
     STATS  gets=.. puts=.. scans=..
     RUN    workers=<n> wall_ns=<n>
 
-Código de saída: 0 se não houver violações, 1 se houver, 2 para erro de uso ou formato.
+Código de saída: 0 se não houver violações, 1 se houver, 2 para erro de 
+uso ou formato.
+
+O validador considera os intervalos de início e fim de cada operação para
+identificar somente violações que não podem ser explicadas por uma ordenação
+possível das operações concorrentes.
 """
 
 import argparse
@@ -28,22 +33,38 @@ import sys
 
 NEG_INF = float("-inf")
 
-
 class Report:
-    """Coleta violações por categoria, na ordem em que aparecem."""
+    """Agrupa violações por categoria e limita os exemplos exibidos.
+
+    As categorias e mensagens são mantidas na ordem em que as violações são
+    adicionadas.
+    """
 
     def __init__(self, max_print):
+        """Inicializa o relatório.
+
+        Args:
+            max_print: Número máximo de exemplos a imprimir por categoria.
+        """
         self.max_print = max_print
         self.by_cat = collections.OrderedDict()
 
     def add(self, category, msg):
+        """Adiciona uma mensagem à categoria indicada.
+
+        Args:
+            category: Nome da categoria da violação.
+            msg: Descrição legível da violação.
+        """
         self.by_cat.setdefault(category, []).append(msg)
 
     @property
     def total(self):
+        """Quantidade total de violações registradas."""
         return sum(len(v) for v in self.by_cat.values())
 
     def print(self):
+        """Imprime as violações agrupadas, respeitando o limite configurado."""
         for cat, msgs in self.by_cat.items():
             print(f"[{cat}] {len(msgs)} violação(ões)")
             for m in msgs[: self.max_print]:
@@ -53,12 +74,33 @@ class Report:
 
 
 def fail_format(msg):
+    """Informa um erro de formato e encerra o processo com código 2.
+
+    Args:
+        msg: Detalhe do erro a ser escrito na saída de erro.
+    """
     print(f"erro de formato: {msg}", file=sys.stderr)
     sys.exit(2)
 
 
 def load_trace(path):
-    """Devolve (keys, {sessão: [(tipo, a, b)]}) a partir do arquivo de carga."""
+    """Lê a carga e a converte em parâmetros e operações por sessão.
+
+    Args:
+        path: Caminho do arquivo de carga.
+
+    Returns:
+        Tupla ``(keys, sessions)``, em que ``keys`` é o número de chaves 
+        e ``sessions`` mapeia cada identificador de sessão para uma lista 
+        de operações como uma tupla ``(tipo, a, b)``. Em operações ``G`` 
+        (``get``), o último valor da tupla é ``None``; em operações ``P`` 
+        (``put``) e ``S`` (``scan``), o último valor é um inteiro.
+
+    Raises:
+        SystemExit: Com código 2 se houver registro ou operação desconhecida,
+            ou se o arquivo não contiver um registro ``PARAMS``.
+        OSError: Se o arquivo não puder ser aberto ou lido.
+    """
     keys, sessions = None, {}
     with open(path, encoding="utf-8") as f:
         for n, line in enumerate(f, 1):
@@ -88,8 +130,22 @@ def load_trace(path):
 
 
 def load_log(path):
-    """Devolve (operações, stats, run). Cada operação é uma tupla
-    (sessão, índice, tipo, a, b, início, fim, resultado)."""
+    """Lê o log e separa operações, contadores e metadados da execução.
+
+    Args:
+        path: Caminho do arquivo de log.
+
+    Returns:
+        Tupla ``(ops, stats, run)``. Cada item de ``ops`` tem o formato
+        ``(sessão, índice, tipo, a, b, início, fim, resultado)``; ``stats`` e
+        ``run`` são dicionários de valores inteiros ou ``None`` quando seus
+        registros não aparecem no log.
+
+    Raises:
+        SystemExit: Com código 2 se uma linha tiver formato inválido ou tipo
+            desconhecido.
+        OSError: Se o arquivo não puder ser aberto ou lido.
+    """
     ops, stats, run = [], None, None
     with open(path, encoding="utf-8") as f:
         for n, line in enumerate(f, 1):
@@ -98,7 +154,8 @@ def load_log(path):
                 if c[0] == "OP":
                     res = None if c[8] == "-" else int(c[8])
                     b = None if c[5] == "-" else int(c[5])
-                    ops.append((int(c[1]), int(c[2]), c[3], int(c[4]), b, int(c[6]), int(c[7]), res))
+                    ops.append((int(c[1]), int(c[2]), c[3], int(c[4]), b, 
+                                int(c[6]), int(c[7]), res))
                 elif c[0] == "STATS":
                     stats = {k: int(v) for k, v in (t.split("=") for t in c[1:])}
                 elif c[0] == "RUN":
@@ -111,9 +168,25 @@ def load_log(path):
 
 
 def validate(keys, sessions, ops, stats, run, rep):
+    """Verifica completude, resultados e contadores do log.
+
+    Args:
+        keys: Número de chaves definido na carga.
+        sessions: Mapeamento de identificadores para operações esperadas.
+        ops: Operações registradas no log, no formato produzido por
+            :func:`load_log`.
+        stats: Contadores registrados, ou ``None`` se ausentes.
+        run: Metadados da execução, ou ``None`` se ausentes.
+        rep: Relatório ao qual as violações encontradas serão adicionadas.
+
+    Returns:
+        Dicionário com as quantidades de sessões, operações esperadas e
+        registradas e operações ``G``, ``P`` e ``S`` encontradas.
+    """
     expected = sum(len(v) for v in sessions.values())
 
-    # ---- completude: cada operação da carga aparece exatamente uma vez, com os mesmos argumentos
+    # completude: cada operação da carga aparece exatamente uma vez, 
+    # com os mesmos argumentos
     seen = {}
     for (sid, idx, kind, a, b, s, e, res) in ops:
         key = (sid, idx)
@@ -136,14 +209,16 @@ def validate(keys, sessions, ops, stats, run, rep):
     if stats is None:
         rep.add("completude", "log sem linha STATS")
 
-    # ---- índices por chave: puts (intervalos) e valor -> put
+    # índices por chave: puts (intervalos) e valor -> put
     puts_by_key = collections.defaultdict(list)       # chave -> [(início, fim, valor)]
-    put_of_value = {}                                  # valor -> (chave, início, fim)
+    put_of_value = {}                                 # valor -> (chave, início, fim)
     for (sid, idx, kind, a, b, s, e, res) in ops:
         if kind == "P":
             puts_by_key[a].append((s, e, b))
             put_of_value[b] = (a, s, e)
-    # para detectar obsolescência: por chave, puts ordenados por fim e máximo prefixo dos inícios
+    
+    # para detectar obsolescência: por chave, puts ordenados por fim e 
+    # máximo prefixo dos inícios
     ends, prefmax = {}, {}
     for k, lst in puts_by_key.items():
         lst.sort(key=lambda t: t[1])
@@ -156,7 +231,7 @@ def validate(keys, sessions, ops, stats, run, rep):
     first_start = {k: min(t[0] for t in v) for k, v in puts_by_key.items()}
     first_end = {k: min(t[1] for t in v) for k, v in puts_by_key.items()}
 
-    # ---- valor-invalido / valor-obsoleto (get)
+    # valor-invalido / valor-obsoleto (get)
     for (sid, idx, kind, a, b, s, e, v) in ops:
         if kind != "G":
             continue
@@ -174,14 +249,15 @@ def validate(keys, sessions, ops, stats, run, rep):
                 rep.add("valor-invalido", f"sessão {sid}, get({a}) devolveu {v} antes de o put começar")
                 continue
             p_end = info[2]
-        # existe put q concluído antes do get e estritamente depois do put que gravou v?
+        # existe put concluído antes de get e estritamente depois do put que 
+        # gravou o valor?
         if a in ends:
             n = bisect.bisect_left(ends[a], s)          # puts com fim < início do get
             if n > 0 and prefmax[a][n - 1] > p_end:
                 rep.add("valor-obsoleto",
                         f"sessão {sid}, get({a}) devolveu {v}, mas um put posterior já havia terminado antes do início do get")
 
-    # ---- varredura (scan)
+    # varredura (scan)
     n_scans = 0
     for (sid, idx, kind, a, b, s, e, c) in ops:
         if kind != "S":
@@ -193,7 +269,7 @@ def validate(keys, sessions, ops, stats, run, rep):
         if c is None or not (lower <= c <= upper):
             rep.add("varredura", f"sessão {sid}, scan({lo},{hi}) devolveu {c}; o intervalo possível era [{lower}, {upper}]")
 
-    # ---- contadores
+    # contadores
     cnt = collections.Counter(op[2] for op in ops)
     if stats is not None:
         for name, kind in (("gets", "G"), ("puts", "P"), ("scans", "S")):
@@ -205,10 +281,20 @@ def validate(keys, sessions, ops, stats, run, rep):
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    """Executa a validação a partir dos argumentos da linha de comando.
+
+    Lê a carga e o log, imprime o resumo e as violações encontradas.
+
+    Returns:
+        Código de saída ``0`` se não houver violações, ``1`` se houver
+        violações e ``2`` em caso de erro de leitura dos arquivos.
+    """
+    ap = argparse.ArgumentParser(description=__doc__, 
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("trace", help="arquivo de carga (workload)")
     ap.add_argument("log", help="log de eventos produzido pela execução")
-    ap.add_argument("--max-print", type=int, default=5, help="máximo de exemplos por categoria")
+    ap.add_argument("--max-print", type=int, default=5, 
+                    help="máximo de exemplos por categoria")
     args = ap.parse_args()
     try:
         keys, sessions = load_trace(args.trace)

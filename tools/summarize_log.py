@@ -6,6 +6,10 @@ Uso:
 Mostra o tempo total e a vazão (a partir da linha RUN) e, para cada tipo de
 operação (G = get, P = put, S = scan), a quantidade de chamadas e a distribuição
 da duração (fim - início), em milissegundos: média, mediana (p50), p95, p99 e máximo.
+
+O log usa campos separados por tabulação. Registros ``OP`` fornecem as durações
+das operações; um registro ``RUN`` opcional fornece os dados agregados da
+execução e das sessões concluídas.
 """
 
 import collections
@@ -14,12 +18,32 @@ import sys
 
 
 def percentile(sorted_vals, p):
-    """Percentil por classificação mais próxima (``sorted_vals`` ordenado, não vazio)."""
+    """Calcula um percentil pela regra da classificação mais próxima.
+
+    Args:
+        sorted_vals: Valores em ordem crescente. A sequência deve ser não vazia.
+        p: Percentil desejado. Valores fora de ``0`` a ``100`` são limitados
+            ao mínimo ou ao máximo da sequência.
+
+    Returns:
+        O elemento na posição correspondente, limitado aos extremos da
+        sequência para percentis fora desse intervalo.
+    """
     k = max(0, min(len(sorted_vals) - 1, math.ceil(p / 100 * len(sorted_vals)) - 1))
     return sorted_vals[k]
 
 
 def main():
+    """Lê um log e imprime estatísticas de duração e vazão.
+
+    Exatamente um argumento é fornecido, que é o caminho do arquivo de log. 
+    Se a linha ``RUN`` estiver ausente, ainda apresenta as estatísticas por 
+    operação e informa que o log pode estar incompleto.
+
+    Returns:
+        Código de saída ``0`` em caso de uso válido ou ``2`` se faltar ou
+        sobrar argumento.
+    """
     if len(sys.argv) != 2:
         print("uso: python3 tools/summarize_log.py events.log", file=sys.stderr)
         return 2
