@@ -1,6 +1,7 @@
 # Gerados pela compilação
 out/
 *.class
+doc/
 cpp/table_sync
 cpp/doc/
 *.o
