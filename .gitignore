@@ -2,6 +2,7 @@
 out/
 *.class
 cpp/table_sync
+cpp/doc/
 *.o
 __pycache__/
 *.pyc
