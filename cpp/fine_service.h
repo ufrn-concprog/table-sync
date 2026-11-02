@@ -1,33 +1,73 @@
 /**
  * @file    fine_service.h
- * @brief   ARQUIVO DOS ALUNOS — versão Fine da tabela concorrente.
- * @details Leia 'Descrição do problema' e 'Implementação' no README antes de começar e
- *          justifique no relatório cada escolha de sincronização.
+ * @brief   Declara a implementação da versão fine da tabela concorrente.
  */
 #ifndef FINE_SERVICE_H
 #define FINE_SERVICE_H
 
 #include <stdexcept>
+using std::logic_error;
 
 #include "harness.h"
+using harness::Params;
+using harness::Stats;
+using harness::TableService;
 
-/** @brief Versão Fine da tabela concorrente. */
-class FineTableService : public harness::TableService {
+/**
+ * @class   FineTableService
+ * @brief   Versão fine da tabela concorrente.
+ */
+class FineTableService : public TableService {
 public:
-    /** @brief Cria o serviço com os parâmetros da carga. */
-    explicit FineTableService(const harness::Params& params) : params_(params) {}
+    /**
+     * @brief Cria o serviço com os parâmetros da carga.
+     * @param params Parâmetros da carga.
+     */
+    explicit FineTableService(const Params& params) : params_(params) {}
 
-    int get([[maybe_unused]] int key) override { throw std::logic_error("TODO"); }
+    /**
+     * @brief Devolve o valor da chave
+     * @param key Chave para a qual buscar o valor
+     * @return Valor da chave, ou 0 se nenhum valor foi gravado nela.
+     * @throws `logic_error`: este método ainda não foi implementado.
+     */
+    int get([[maybe_unused]] int key) override { 
+        throw logic_error("TODO"); 
+    }
 
-    void put([[maybe_unused]] int key, [[maybe_unused]] int value) override { throw std::logic_error("TODO"); }
+    /**
+     * @brief Grava um valor na chave
+     * @param key Chave para a qual gravar o valor
+     * @param value Valor a ser gravado
+     * @throws `logic_error`: este método ainda não foi implementado.
+     */
+    void put([[maybe_unused]] int key, [[maybe_unused]] int value) override {
+        throw logic_error("TODO");
+    }
 
-    int scan([[maybe_unused]] int lo, [[maybe_unused]] int hi) override { throw std::logic_error("TODO"); }
+    /**
+     * @brief Realiza uma varredura na tabela
+     * @param lo Limite inferior da varredura
+     * @param hi Limite superior da varredura
+     * @return Quantidade de chaves com valor diferente de 0 no intervalo [lo, hi)
+     * @throws `logic_error`: este método ainda não foi implementado.
+     */
+    int scan([[maybe_unused]] int lo, [[maybe_unused]] int hi) override { 
+        throw logic_error("TODO"); 
+    }
 
-    harness::Stats stats() override { throw std::logic_error("TODO"); }
+    /**
+     * @brief Devolve as estatísticas do serviço
+     * @return Stats contendo os contadores de chamadas de cada operação.
+     * @throws `logic_error`: este método ainda não foi implementado.
+     */
+    Stats stats() override { 
+        throw logic_error("TODO"); 
+    }
 
 private:
     /** @brief Cópia dos parâmetros usados pelo serviço. */
-    harness::Params params_;
+    Params params_;
 
     // TODO: implementar o estado compartilhado e os mecanismos de sincronização
 };
